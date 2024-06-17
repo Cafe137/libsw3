@@ -20,14 +20,14 @@ export class SwarmWebsite {
         return feedReference.reference
     }
 
-    public async publish(): Promise<string> {
+    public async publish(index?: number): Promise<string> {
         const bee = new Bee(this.settings.beeApi)
         const privateKey = Strings.randomHex(64, Random.makeSeededRng(Strings.hashCode(this.privateKey)))
         const writer = bee.makeFeedWriter('sequence', '0'.repeat(64), privateKey)
         const feedUploadResults = await writer.upload(
             this.settings.postageBatchId,
             Binary.hexToUint8Array(this.collection.getHash()) as Bytes<32>,
-            { deferred: true, pin: true }
+            { deferred: true, index }
         )
         return feedUploadResults
     }

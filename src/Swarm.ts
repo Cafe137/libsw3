@@ -8,7 +8,6 @@ import { SwarmWebsite } from './SwarmWebsite'
 
 interface SwarmConstructorParameters {
     beeApi?: string
-    beeDebugApi?: string
     postageBatchId?: string
 }
 
