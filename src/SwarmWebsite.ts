@@ -27,7 +27,7 @@ export class SwarmWebsite {
         const feedUploadResults = await writer.upload(
             this.settings.postageBatchId,
             Binary.hexToUint8Array(this.collection.getHash()) as Bytes<32>,
-            { deferred: true }
+            { deferred: true, pin: true }
         )
         return feedUploadResults
     }
