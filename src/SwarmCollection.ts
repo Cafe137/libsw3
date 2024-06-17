@@ -1,23 +1,24 @@
 import { Bee } from '@ethersphere/bee-js'
-import { Strings } from 'cafe-utility'
+import { Binary, Strings } from 'cafe-utility'
 import { MantarayNode, Reference } from 'mantaray-js'
 import { SwarmHandle } from './SwarmHandle'
-
 import { SwarmRawData } from './SwarmRawData'
 import { SwarmResource } from './SwarmResource'
-import { getStamp } from './Utility'
+import { SwarmSettings } from './SwarmSettings'
 
 export class SwarmCollection {
     public handles: Map<string, SwarmHandle> = new Map()
-
     private dirty = false
     private hash?: string
+    private settings: SwarmSettings
 
-    constructor() {}
+    constructor(settings: SwarmSettings) {
+        this.settings = settings
+    }
 
     public async addRawData(path: string, data: SwarmRawData) {
         await data.save()
-        this.handles.set(path, new SwarmHandle(path, data.hash!, data.contentType))
+        this.handles.set(path, new SwarmHandle(this.settings, path, data.hash!, data.contentType))
         this.dirty = true
     }
 
@@ -40,13 +41,12 @@ export class SwarmCollection {
     }
 
     public async save(): Promise<string> {
-        const bee = new Bee('http://localhost:1633')
-        const stamp = await getStamp()
+        const bee = new Bee(this.settings.beeApi)
         const mantaray = new MantarayNode()
         for (const [rawPath, handle] of this.handles.entries()) {
             const path = new TextEncoder().encode(rawPath)
             const filename = Strings.normalizeFilename(rawPath)
-            mantaray.addFork(path, Strings.hexToUint8Array(handle.hash) as Reference, {
+            mantaray.addFork(path, Binary.hexToUint8Array(handle.hash) as Reference, {
                 'Content-Type': handle.contentType,
                 Filename: filename,
                 'website-index-document': 'index.html',
@@ -54,11 +54,11 @@ export class SwarmCollection {
             })
         }
         const reference = await mantaray.save(async (data: Uint8Array) => {
-            const { reference } = await bee.uploadData(stamp, data, { deferred: true })
-            return Strings.hexToUint8Array(reference) as Reference
+            const { reference } = await bee.uploadData(this.settings.postageBatchId, data, { deferred: true })
+            return Binary.hexToUint8Array(reference) as Reference
         })
         this.dirty = false
-        this.hash = Strings.uint8ArrayToHex(reference)
+        this.hash = Binary.uint8ArrayToHex(reference)
         return this.hash
     }
 }
